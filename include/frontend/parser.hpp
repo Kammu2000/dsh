@@ -1,4 +1,5 @@
 #pragma once
+#include "runtime/astVisitor.hpp"
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -17,7 +18,6 @@ public:
   std::string fileName;
 };
 
-// TODO:need to learn about all kinds of special member functions written here
 class Expression {
 public:
   Expression() = default;
@@ -27,6 +27,7 @@ public:
   Expression(Expression &&) = default;
   Expression &operator=(Expression &&) = default;
   virtual void print(int indent = 0) const = 0;
+  virtual void accept(ASTVisitor &visitor) const = 0;
 };
 
 class PipeExpression : public Expression {
@@ -34,6 +35,7 @@ public:
   ExpressionType type;
   std::unique_ptr<Expression> left, right;
   void print(int indent = 0) const override;
+  void accept(ASTVisitor &visit) const override;
 };
 
 class CommandExpression : public Expression {
@@ -43,6 +45,7 @@ public:
   std::vector<std::string> args;
   std::vector<Redirect> redirects;
   void print(int indent = 0) const override;
+  void accept(ASTVisitor &visit) const override;
 };
 
 class Program {
