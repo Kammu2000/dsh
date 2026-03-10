@@ -7,11 +7,11 @@
 enum class TokenType : uint8_t {
   // we cannot have reserved keywords in shell like ls, cd as they can be used
   // as an arguement also so we need to keep a generic token for words
-  WORD,
-  PIPE,
   REDIRECT_IN,
   REDIRECT_OUT,
   REDIRECT_APPEND,
+  WORD,
+  PIPE,
   END_OF_FILE,
 };
 

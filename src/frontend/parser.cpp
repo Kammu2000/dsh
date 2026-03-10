@@ -1,3 +1,4 @@
+#include "runtime/astVisitor.hpp"
 #include <cstddef>
 #include <frontend/lexer.hpp>
 #include <frontend/parser.hpp>
@@ -65,9 +66,12 @@ public:
     if (idx < len && tokens[idx].getType() == TokenType::WORD) {
       commandExpr->command = tokens[idx++].getValue();
       commandExpr->args = this->parseCommandArguments();
+      commandExpr->redirects = this->parseRedirects();
+
+    } else {
+      throw std::runtime_error("Command expression could not be parsed");
     }
 
-    commandExpr->redirects = this->parseRedirects();
     return commandExpr;
   }
 
@@ -96,6 +100,7 @@ public:
       }
 
       redirect.fileName = tokens[idx].getValue();
+      idx++; // consume fileName
       redirects.push_back(redirect);
     }
 
@@ -151,17 +156,8 @@ void PipeExpression::print(int indent) const {
   right->print(indent + 1);
 }
 
-int main() {
-  std::string code;
-  std::cout << "$";
-  std::getline(std::cin, code);
+void PipeExpression::accept(ASTVisitor &visitor) const { visitor.visit(*this); }
 
-  ProgramParser parser(code);
-  Program ast = parser.buildAST();
-
-  for (const auto &stmt : ast.stmts) {
-    stmt->print();
-  }
-
-  return 0;
-}
+void CommandExpression::accept(ASTVisitor &visitor) const {
+  visitor.visit(*this);
+};
