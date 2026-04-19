@@ -40,4 +40,4 @@ $ echo appended >> out.txt
 
 ## License
 
-See repository license file (if present).
+Copyright (c) 2026 Deepanshu Upadhyay. Licensed under the [MIT License](LICENSE).

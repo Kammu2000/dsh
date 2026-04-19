@@ -9,17 +9,14 @@
 #include <utility>
 #include <vector>
 
-static void printIndent(int indent) {
+namespace {
+void printIndent(int indent) {
   for (int i = 0; i < indent; i++) {
     std::cout << "  ";
   }
 }
 
 class ExpressionParser {
-private:
-  std::vector<Token> tokens;
-  int idx = 0;
-
 public:
   ExpressionParser(std::vector<Token> &tokens) : tokens(tokens) {}
 
@@ -106,7 +103,13 @@ public:
 
     return redirects;
   }
+
+private:
+  std::vector<Token> tokens;
+  int idx = 0;
 };
+
+} // namespace
 
 ProgramParser::ProgramParser(std::string srcCode)
     : sourceCode(std::move(srcCode)) {}
