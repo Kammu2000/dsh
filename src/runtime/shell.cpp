@@ -4,25 +4,29 @@
 #include <runtime/evaluator.hpp>
 #include <string>
 
-int main() {
-  while (true) {
-    std::cout << "$ ";
-    std::string code;
+int main()
+{
+    while (true)
+    {
+        std::cout << "$ ";
+        std::string code;
 
-    // exit signal detection
-    if (!std::getline(std::cin, code)) {
-      break; // ctrl + d
+        // exit signal detection
+        if (!std::getline(std::cin, code))
+        {
+            break; // ctrl + d
+        }
+
+        ProgramParser parser(code);
+        Program ast = parser.build_ast();
+
+        Evaluator evaluator;
+
+        for (const auto& stmt : ast.m_statements)
+        {
+            evaluator.evaluate(*stmt);
+        }
     }
 
-    ProgramParser parser(code);
-    Program ast = parser.buildAST();
-
-    Evaluator evaluator;
-
-    for (const auto &stmt : ast.stmts) {
-      evaluator.evaluate(*stmt);
-    }
-  }
-
-  return 0;
+    return 0;
 }

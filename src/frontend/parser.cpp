@@ -2,165 +2,129 @@
 #include <cstddef>
 #include <frontend/lexer.hpp>
 #include <frontend/parser.hpp>
-#include <iostream>
 #include <memory>
 #include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
 
-namespace {
-void printIndent(int indent) {
-  for (int i = 0; i < indent; i++) {
-    std::cout << "  ";
-  }
+CommandExpression::CommandExpression(std::string command, std::vector<std::string> args,
+                                     std::vector<Redirect> redirects)
+    : m_command(std::move(command)), m_args(std::move(args)), m_redirects(std::move(redirects)) {};
+
+PipeExpression::PipeExpression(std::unique_ptr<Expression> left, std::unique_ptr<Expression> right)
+    : m_left(std::move(left)), m_right(std::move(right)) {};
+
+ProgramParser::ProgramParser(std::string source_code) : m_source_code(std::move(source_code)) {}
+
+Program ProgramParser::build_ast()
+{
+    Lexer lexer(m_source_code);
+    std::vector<Token> tokens = lexer.tokenize();
+
+    ExpressionParser exprParser(tokens);
+    Program program;
+
+    std::unique_ptr<Expression> temp = exprParser.parse_expression();
+    program.m_statements.push_back(std::move(temp));
+
+    return program;
 }
 
-class ExpressionParser {
-public:
-  ExpressionParser(std::vector<Token> &tokens) : tokens(tokens) {}
+ExpressionParser::ExpressionParser(std::vector<Token>& tokens) : m_tokens(tokens), m_idx(0) {};
 
-  bool isRedirect() {
-    switch (tokens[idx].getType()) {
-    case TokenType::REDIRECT_IN:
-    case TokenType::REDIRECT_OUT:
-    case TokenType::REDIRECT_APPEND:
-      return true;
+bool ExpressionParser::is_redirect()
+{
+    switch (m_tokens[m_idx].m_type)
+    {
+        case TokenType::REDIRECT_IN:
+        case TokenType::REDIRECT_OUT:
+        case TokenType::REDIRECT_APPEND:
+            return true;
 
-    default:
-      return false;
+        default:
+            return false;
     }
+}
 
-    return false;
-  }
+std::unique_ptr<Expression> ExpressionParser::parse_expression()
+{
+    return parse_pipe_expression();
+}
 
-  std::unique_ptr<Expression> parseExpression() {
-    return parsePipeExpression();
-  }
+std::unique_ptr<Expression> ExpressionParser::parse_pipe_expression()
+{
+    size_t len = m_tokens.size();
+    auto left = parse_command_expression();
 
-  std::unique_ptr<Expression> parsePipeExpression() {
-    size_t len = tokens.size();
-    auto left = this->parseCommandExpression();
-
-    while (idx < len && tokens[idx].getType() == TokenType::PIPE) {
-      idx++;
-      auto right = this->parseCommandExpression();
-
-      auto pipe = std::make_unique<PipeExpression>();
-      pipe->left = std::move(left);
-      pipe->right = std::move(right);
-
-      left = std::move(pipe);
+    while (m_idx < len && m_tokens[m_idx].m_type == TokenType::PIPE)
+    {
+        m_idx++;
+        auto right = parse_command_expression();
+        auto pipe = std::make_unique<PipeExpression>(std::move(left), std::move(right));
+        left = std::move(pipe);
     }
 
     return left;
-  }
+}
 
-  std::unique_ptr<Expression> parseCommandExpression() {
-    auto commandExpr = std::make_unique<CommandExpression>();
-    size_t len = tokens.size();
+std::unique_ptr<Expression> ExpressionParser::parse_command_expression()
+{
+    size_t len = m_tokens.size();
 
-    if (idx < len && tokens[idx].getType() == TokenType::WORD) {
-      commandExpr->command = tokens[idx++].getValue();
-      commandExpr->args = this->parseCommandArguments();
-      commandExpr->redirects = this->parseRedirects();
+    if (m_idx < len && m_tokens[m_idx].m_type == TokenType::WORD)
+    {
+        auto command = m_tokens[m_idx++].m_value;
+        auto args = parse_command_arguments();
+        auto redirects = parse_redirects();
 
-    } else {
-      throw std::runtime_error("Command expression could not be parsed");
+        return std::make_unique<CommandExpression>(std::move(command), std::move(args),
+                                                   std::move(redirects));
     }
 
-    return commandExpr;
-  }
+    throw std::runtime_error("Command expression could not be parsed");
+}
 
-  std::vector<std::string> parseCommandArguments() {
-    size_t len = tokens.size();
+std::vector<std::string> ExpressionParser::parse_command_arguments()
+{
+    size_t len = m_tokens.size();
     std::vector<std::string> args;
 
-    while (idx < len && tokens[idx].getType() == TokenType::WORD) {
-      args.push_back(tokens[idx++].getValue());
+    while (m_idx < len && m_tokens[m_idx].m_type == TokenType::WORD)
+    {
+        args.push_back(m_tokens[m_idx++].m_value);
     }
 
     return args;
-  }
+}
 
-  std::vector<Redirect> parseRedirects() {
+std::vector<Redirect> ExpressionParser::parse_redirects()
+{
     std::vector<Redirect> redirects;
-    size_t len = tokens.size();
+    size_t len = m_tokens.size();
 
-    while (idx < len && isRedirect()) {
-      Redirect redirect;
-      redirect.type = static_cast<RedirectType>(tokens[idx].getType());
-      idx++; // consume redirect type
+    while (m_idx < len && is_redirect())
+    {
+        auto type = static_cast<RedirectType>(m_tokens[m_idx++].m_type);
 
-      if (tokens[idx].getType() != TokenType::WORD) {
-        throw std::runtime_error("Expected filename after redirect");
-      }
+        if (m_idx >= len || m_tokens[m_idx].m_type != TokenType::WORD)
+        {
+            throw std::runtime_error("Expected filename after redirect");
+        }
 
-      redirect.fileName = tokens[idx].getValue();
-      idx++; // consume fileName
-      redirects.push_back(redirect);
+        auto fileName = m_tokens[m_idx++].m_value;
+        redirects.emplace_back(type, fileName);
     }
 
     return redirects;
-  }
-
-private:
-  std::vector<Token> tokens;
-  int idx = 0;
-};
-
-} // namespace
-
-ProgramParser::ProgramParser(std::string srcCode)
-    : sourceCode(std::move(srcCode)) {}
-
-Program ProgramParser::buildAST() {
-  Lexer lexer(this->sourceCode);
-  std::vector<Token> tokens = lexer.tokenize();
-
-  ExpressionParser exprParser(tokens);
-  Program program;
-
-  std::unique_ptr<Expression> temp = exprParser.parseExpression();
-  program.stmts.push_back(std::move(temp));
-
-  return program;
 }
 
-void CommandExpression::print(int indent) const {
-  printIndent(indent);
-  std::cout << "Command: " << command << "\n";
-
-  if (!args.empty()) {
-    printIndent(indent + 1);
-    std::cout << "Args:\n";
-    for (const auto &arg : args) {
-      printIndent(indent + 2);
-      std::cout << arg << "\n";
-    }
-  }
-
-  if (!redirects.empty()) {
-    printIndent(indent + 1);
-    std::cout << "Redirects:\n";
-    for (const auto &redirect : redirects) {
-      printIndent(indent + 2);
-      std::cout << "Type: " << static_cast<int>(redirect.type)
-                << " File: " << redirect.fileName << "\n";
-    }
-  }
+void PipeExpression::accept(ASTVisitor& visitor) const
+{
+    visitor.visit(*this);
 }
 
-void PipeExpression::print(int indent) const {
-  printIndent(indent);
-  std::cout << "Pipe\n";
-
-  left->print(indent + 1);
-  right->print(indent + 1);
-}
-
-void PipeExpression::accept(ASTVisitor &visitor) const { visitor.visit(*this); }
-
-void CommandExpression::accept(ASTVisitor &visitor) const {
-  visitor.visit(*this);
+void CommandExpression::accept(ASTVisitor& visitor) const
+{
+    visitor.visit(*this);
 };
