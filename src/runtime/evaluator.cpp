@@ -28,17 +28,17 @@ void Evaluator::evaluate(const Expression& expr)
 
 void Evaluator::evaluate_pipe(const PipeExpression& expr)
 {
-    std::array<int, 2> fileDesc{};
-    pipe(fileDesc.data());
+    std::array<int, 2> file_desc{};
+    pipe(file_desc.data());
 
     // left process
     pid_t left = fork();
 
     if (left == 0)
     {
-        dup2(fileDesc[1], STDOUT_FILENO);
-        close(fileDesc[0]);
-        close(fileDesc[1]);
+        dup2(file_desc[1], STDOUT_FILENO);
+        close(file_desc[0]);
+        close(file_desc[1]);
         evaluate(*expr.get_left());
         exit(0);
     }
@@ -48,15 +48,15 @@ void Evaluator::evaluate_pipe(const PipeExpression& expr)
 
     if (right == 0)
     {
-        dup2(fileDesc[0], STDIN_FILENO);
-        close(fileDesc[0]);
-        close(fileDesc[1]);
+        dup2(file_desc[0], STDIN_FILENO);
+        close(file_desc[0]);
+        close(file_desc[1]);
         evaluate(*expr.get_right());
         exit(0);
     }
 
-    close(fileDesc[0]);
-    close(fileDesc[1]);
+    close(file_desc[0]);
+    close(file_desc[1]);
     waitpid(left, nullptr, 0);
     waitpid(right, nullptr, 0);
 }
@@ -69,30 +69,30 @@ void Evaluator::evaluate_command(const CommandExpression& cmd)
     {
         for (const auto& redirect : cmd.get_redirects())
         {
-            int fileDesc = 0;
+            int file_desc = 0;
 
             if (redirect.m_type == RedirectType::REDIRECT_OUT)
             {
                 // NOLINTNEXTLINE
-                fileDesc = open(redirect.m_file_name.c_str(), O_WRONLY | O_CREAT | O_TRUNC,
-                                DEFAULT_FILE_MODE);
-                dup2(fileDesc, STDOUT_FILENO);
+                file_desc = open(redirect.m_file_name.c_str(), O_WRONLY | O_CREAT | O_TRUNC,
+                                 DEFAULT_FILE_MODE);
+                dup2(file_desc, STDOUT_FILENO);
             }
             else if (redirect.m_type == RedirectType::REDIRECT_APPEND)
             {
                 // NOLINTNEXTLINE
-                fileDesc = open(redirect.m_file_name.c_str(), O_WRONLY | O_CREAT | O_APPEND,
-                                DEFAULT_FILE_MODE);
-                dup2(fileDesc, STDOUT_FILENO);
+                file_desc = open(redirect.m_file_name.c_str(), O_WRONLY | O_CREAT | O_APPEND,
+                                 DEFAULT_FILE_MODE);
+                dup2(file_desc, STDOUT_FILENO);
             }
             else if (redirect.m_type == RedirectType::REDIRECT_IN)
             {
                 // NOLINTNEXTLINE
-                fileDesc = open(redirect.m_file_name.c_str(), O_RDONLY);
-                dup2(fileDesc, STDIN_FILENO);
+                file_desc = open(redirect.m_file_name.c_str(), O_RDONLY);
+                dup2(file_desc, STDIN_FILENO);
             }
 
-            close(fileDesc);
+            close(file_desc);
         }
 
         // we can not use .c_str() on cmd.get_command because that returns const char* while argv needs char*

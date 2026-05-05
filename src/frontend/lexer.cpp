@@ -77,7 +77,8 @@ std::vector<Token> Lexer::tokenize()
                 }
                 else
                 {
-                    throw LexerError("Found unknown character: " + std::to_string(m_code[m_idx]));
+                    throw LexerError("Found unknown character at position: " +
+                                     std::to_string(m_idx));
                 }
 
                 break;

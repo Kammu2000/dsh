@@ -1,7 +1,10 @@
-#include <cstddef>
+#include <exception>
 #include <frontend/parser.hpp>
-#include <iostream>
 #include <runtime/evaluator.hpp>
+#include <common/errors.hpp>
+#include <common/error_handler.hpp>
+#include <cstddef>
+#include <iostream>
 #include <string>
 
 int main()
@@ -17,14 +20,21 @@ int main()
             break; // ctrl + d
         }
 
-        ProgramParser parser(code);
-        Program ast = parser.build_ast();
-
-        Evaluator evaluator;
-
-        for (const auto& stmt : ast.m_statements)
+        try
         {
-            evaluator.evaluate(*stmt);
+            ProgramParser parser(code);
+            Program ast = parser.build_ast();
+
+            Evaluator evaluator;
+
+            for (const auto& stmt : ast.m_statements)
+            {
+                evaluator.evaluate(*stmt);
+            }
+        }
+        catch (const std::exception& error)
+        {
+            dsh::handlers::handle_error(error);
         }
     }
 

@@ -1,9 +1,9 @@
 #include "runtime/astVisitor.hpp"
+#include "common/errors.hpp"
 #include <cstddef>
 #include <frontend/lexer.hpp>
 #include <frontend/parser.hpp>
 #include <memory>
-#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
@@ -82,7 +82,7 @@ std::unique_ptr<Expression> ExpressionParser::parse_command_expression()
                                                    std::move(redirects));
     }
 
-    throw std::runtime_error("Command expression could not be parsed");
+    throw ParserError("Command name was not found at position: " + std::to_string(m_idx));
 }
 
 std::vector<std::string> ExpressionParser::parse_command_arguments()
@@ -109,7 +109,8 @@ std::vector<Redirect> ExpressionParser::parse_redirects()
 
         if (m_idx >= len || m_tokens[m_idx].m_type != TokenType::WORD)
         {
-            throw std::runtime_error("Expected filename after redirect");
+            throw ParserError("Filename was not passed after redirect at position: " +
+                              std::to_string(m_idx));
         }
 
         auto fileName = m_tokens[m_idx++].m_value;
@@ -127,4 +128,4 @@ void PipeExpression::accept(ASTVisitor& visitor) const
 void CommandExpression::accept(ASTVisitor& visitor) const
 {
     visitor.visit(*this);
-};
+}
