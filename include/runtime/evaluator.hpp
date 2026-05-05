@@ -1,5 +1,5 @@
 #pragma once
-#include "astVisitor.hpp"
+#include "ast_visitor.hpp"
 #include "frontend/parser.hpp"
 
 class Evaluator : public ASTVisitor

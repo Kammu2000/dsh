@@ -4,6 +4,6 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 
-set(SOURCES src/frontend/lexer.cpp src/frontend/parser.cpp src/runtime/evaluator.cpp src/runtime/shell.cpp)
+set(SOURCES src/common/error_handler.cpp src/frontend/lexer.cpp src/frontend/parser.cpp src/runtime/evaluator.cpp src/runtime/shell.cpp)
 add_executable(${PROJECT_NAME} ${SOURCES})
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include)

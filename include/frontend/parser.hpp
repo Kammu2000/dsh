@@ -1,5 +1,5 @@
 #pragma once
-#include "runtime/astVisitor.hpp"
+#include "runtime/ast_visitor.hpp"
 #include "lexer.hpp"
 #include <cstdint>
 #include <memory>

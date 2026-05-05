@@ -1,4 +1,4 @@
-#include "runtime/astVisitor.hpp"
+#include "runtime/ast_visitor.hpp"
 #include "common/errors.hpp"
 #include <cstddef>
 #include <frontend/lexer.hpp>
@@ -21,6 +21,11 @@ Program ProgramParser::build_ast()
 {
     Lexer lexer(m_source_code);
     std::vector<Token> tokens = lexer.tokenize();
+
+    if (tokens.front().m_type == TokenType::END_OF_FILE)
+    {
+        throw ParserError("no input was provided");
+    }
 
     ExpressionParser exprParser(tokens);
     Program program;
