@@ -48,8 +48,8 @@ class CommandExpression : public Expression
   public:
     CommandExpression(std::string command, std::vector<std::string> args,
                       std::vector<Redirect> redirects);
-    std::string get_command() const { return m_command; }
-    std::vector<std::string> get_args() const { return m_args; }
+    const std::string& get_command() const { return m_command; }
+    const std::vector<std::string>& get_args() const { return m_args; }
     std::vector<Redirect> get_redirects() const { return m_redirects; }
 
     void accept(ASTVisitor& visit) const override;

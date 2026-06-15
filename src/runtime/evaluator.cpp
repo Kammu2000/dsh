@@ -1,13 +1,14 @@
 #include "runtime/evaluator.hpp"
 #include "frontend/parser.hpp"
 #include <array>
+#include <vector>
+#include <cstddef>
 #include <cstdlib>
 #include <fcntl.h>
 #include <sys/fcntl.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <vector>
 
 constexpr mode_t DEFAULT_FILE_MODE = 0644;
 
@@ -96,21 +97,21 @@ void Evaluator::evaluate_command(const CommandExpression& cmd)
         }
 
         // we can not use .c_str() on cmd.get_command because that returns const char* while argv needs char*
-        // so we need to own the memory and then pass reference to argv array by keeping a args_store
-        std::vector<std::string> args_store;
-        std::vector<char*> argv;
+        // so we need to remove const by casting it
 
-        args_store.push_back(cmd.get_command());
-        argv.push_back(args_store.back().data());
+        // NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
+        std::vector<char*> argv;
+        argv.push_back(const_cast<char*>(cmd.get_command().c_str()));
 
         for (const auto& arg : cmd.get_args())
         {
-            args_store.push_back(arg);
-            argv.push_back(args_store.back().data());
+            argv.push_back(const_cast<char*>(arg.c_str()));
         }
 
-        execvp(cmd.get_command().c_str(), argv.data());
+        argv.push_back(nullptr);
+        // NOLINTEND(cppcoreguidelines-pro-type-const-cast)
 
+        execvp(argv[0], argv.data());
         perror("Execution failed");
         exit(1);
     }
